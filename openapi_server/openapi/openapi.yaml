@@ -1,0 +1,328 @@
+openapi: 3.0.0
+info:
+  title: OTUS HA Social Network
+  version: 0.1.0
+servers:
+- url: /
+paths:
+  /login:
+    post:
+      description: Упрощенный процесс аутентификации путем передачи идентификатор
+        пользователя и получения токена для дальнейшего прохождения авторизации
+      operationId: login_post
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/json:
+            schema:
+              properties:
+                id:
+                  description: Идентификатор пользователя
+                  type: string
+                password:
+                  example: Секретная строка
+                  type: string
+              type: object
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: Успешная аутентификация
+        "400":
+          description: Невалидные данные
+        "404":
+          description: Пользователь не найден
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+  /user/get/{id}:
+    get:
+      description: Получение анкеты пользователя
+      operationId: user_get_id_get
+      parameters:
+      - description: Идентификатор пользователя
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          $ref: '#/components/schemas/UserId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Успешное получение анкеты пользователя
+        "400":
+          description: Невалидные данные
+        "404":
+          description: Анкета не найдена
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+  /user/register:
+    post:
+      description: Регистрация нового пользователя
+      operationId: user_register_post
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object_1'
+        content:
+          application/json:
+            schema:
+              properties:
+                first_name:
+                  example: Имя
+                  type: string
+                second_name:
+                  example: Фамилия
+                  type: string
+                birthdate:
+                  description: Дата рождения
+                  example: 2017-02-01
+                  format: date
+                  type: string
+                biography:
+                  example: Хобби, интересы и т.п.
+                  type: string
+                city:
+                  example: Москва
+                  type: string
+                password:
+                  example: Секретная строка
+                  type: string
+              type: object
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: Успешная регистрация
+        "400":
+          description: Невалидные данные
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_500'
+          description: Ошибка сервера
+          headers:
+            Retry-After:
+              description: Время, через которое еще раз нужно сделать запрос
+              explode: false
+              required: false
+              schema:
+                type: integer
+              style: simple
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+components:
+  requestBodies:
+    inline_object_1:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+    inline_object:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+  responses:
+    "400":
+      description: Невалидные данные ввода
+    "401":
+      description: Неавторизованный доступ
+    "5xx":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_500'
+      description: Ошибка сервера
+      headers:
+        Retry-After:
+          description: Время, через которое еще раз нужно сделать запрос
+          explode: false
+          required: false
+          schema:
+            type: integer
+          style: simple
+  schemas:
+    BirthDate:
+      description: Дата рождения
+      example: 2017-02-01
+      format: date
+      type: string
+    UserId:
+      description: Идентификатор пользователя
+      type: string
+    User:
+      example:
+        birthdate: 2017-02-01T00:00:00.000+0000
+        city: Москва
+        second_name: Фамилия
+        id: id
+        biography: Хобби, интересы и т.п.
+        first_name: Имя
+      properties:
+        id:
+          description: Идентификатор пользователя
+          type: string
+        first_name:
+          description: Имя
+          example: Имя
+          type: string
+        second_name:
+          description: Фамилия
+          example: Фамилия
+          type: string
+        birthdate:
+          description: Дата рождения
+          example: 2017-02-01
+          format: date
+          type: string
+        biography:
+          description: Интересы
+          example: Хобби, интересы и т.п.
+          type: string
+        city:
+          description: Город
+          example: Москва
+          type: string
+      type: object
+    inline_object:
+      properties:
+        id:
+          description: Идентификатор пользователя
+          type: string
+        password:
+          example: Секретная строка
+          type: string
+      type: object
+    inline_response_200:
+      example:
+        token: e4d2e6b0-cde2-42c5-aac3-0b8316f21e58
+      properties:
+        token:
+          example: e4d2e6b0-cde2-42c5-aac3-0b8316f21e58
+          type: string
+    inline_response_500:
+      properties:
+        message:
+          description: Описание ошибки
+          type: string
+        request_id:
+          description: Идентификатор запроса. Предназначен для более быстрого поиска
+            проблем.
+          type: string
+        code:
+          description: Код ошибки. Предназначен для классификации проблем и более
+            быстрого решения проблем.
+          type: integer
+      required:
+      - message
+    inline_object_1:
+      properties:
+        first_name:
+          example: Имя
+          type: string
+        second_name:
+          example: Фамилия
+          type: string
+        birthdate:
+          description: Дата рождения
+          example: 2017-02-01
+          format: date
+          type: string
+        biography:
+          example: Хобби, интересы и т.п.
+          type: string
+        city:
+          example: Москва
+          type: string
+        password:
+          example: Секретная строка
+          type: string
+      type: object
+    inline_response_200_1:
+      example:
+        user_id: e4d2e6b0-cde2-42c5-aac3-0b8316f21e58
+      properties:
+        user_id:
+          example: e4d2e6b0-cde2-42c5-aac3-0b8316f21e58
+          type: string
+  securitySchemes:
+    bearerAuth:
+      description: Авторизация по токену, который был получен в методе /login
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: openapi_server.controllers.security_controller_.info_from_bearerAuth
