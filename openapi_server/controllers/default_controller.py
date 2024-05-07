@@ -13,6 +13,7 @@ from openapi_server.models.inline_response500 import InlineResponse500  # noqa: 
 from openapi_server.models.user import User  # noqa: E501
 from openapi_server import util
 from werkzeug.exceptions import HTTPException
+from flask_jwt_extended import create_access_token
 
 
 def login_post(inline_object=None):  # noqa: E501
@@ -25,22 +26,25 @@ def login_post(inline_object=None):  # noqa: E501
 
     :rtype: InlineResponse200
     """
+    def authenticate_user(auth_request: InlineObject):
+        conn = connection.get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"SELECT password_hash FROM cdm.users "
+                    f"WHERE id=\'{auth_request.id}\'")
+        result = cur.fetchone()
+        if result:
+            stored_hash = result[0]
+            stored_hash_bytes = bytes(stored_hash)
+            if bcrypt.checkpw(auth_request.password.encode('utf-8'), stored_hash_bytes):
+                return True
+        return False
     if connexion.request.is_json:
         inline_object = InlineObject.from_dict(connexion.request.get_json())  # noqa: E501
+        if authenticate_user(inline_object):
+            return InlineResponse200(token=create_access_token(identity=inline_object.id))
+        return 'Not do some magic!'# TODO ошибки если пароль не правильный и пользователь не найден и 500 на остальное
 
-        # Аутентификация пользователя
-        def authenticate_user(username, password):
-            # Получаем хэш пароля из базы данных
-            cur.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
-            result = cur.fetchone()
 
-            if result:
-                stored_hash = result[0]
-                if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
-                    return True
-            return False
-
-    return 'do some magic!'
 
 
 def user_get_id_get(id):  # noqa: E501
@@ -53,6 +57,7 @@ def user_get_id_get(id):  # noqa: E501
 
     :rtype: User
     """
+
     return 'do some magic!'
 
 
