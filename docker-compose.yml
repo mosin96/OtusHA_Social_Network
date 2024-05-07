@@ -1,13 +1,8 @@
 version: '1'
 
-secrets:
-  postgres_user:
-    file: ./secrets/postgres_user.txt
-  postgres_password:
-    file: ./secrets/postgres_password.txt
-
 services:
   openapi_server:
+    env_file: ./docker/.env-postgresql
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,6 +10,10 @@ services:
       - .:/app
     ports:
       - 8280:8280
+    depends_on:
+      - postgres
+    networks:
+      - backend
     restart: unless-stopped
 
   postgres:
@@ -44,11 +43,13 @@ services:
     networks:
       - backend
 
+
 volumes:
     db-data:
       driver: local
     pgadmin:
       driver: local
+
 networks:
   backend:
     driver: bridge
