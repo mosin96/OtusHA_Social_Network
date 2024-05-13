@@ -1,8 +1,10 @@
 import datetime
+import uuid
 
 import six
 import typing
 from openapi_server import typing_utils
+from openapi_server.database.connection import get_db_connection
 
 
 def _deserialize(data, klass):
@@ -140,3 +142,40 @@ def _deserialize_dict(data, boxed_type):
     """
     return {k: _deserialize(v, boxed_type)
             for k, v in six.iteritems(data)}
+
+
+# Метод для извлечения информации о пользователе из базы данных PostgreSQL
+def get_user_info_from_database(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT biography, birthdate, city, first_name, id, second_name"
+                " FROM cdm.users WHERE id = %s", (user_id,))
+    user_info = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if user_info:
+        user = {'biography': user_info[0],
+                'birthdate': user_info[1],
+                'city': user_info[2],
+                'first_name': user_info[3],
+                'id': user_info[4],
+                'second_name': user_info[5]}
+        return user
+    else:
+        return None
+
+
+# Метод контроллера для /user/get/<id> с авторизацией по токену Bearer
+# def get_user_by_id(id, authorization):
+# if not check_token(authorization):
+#     return "Ошибка авторизации. Токен Bearer отсутствует.", 401
+
+def is_valid_uuid(uuid_str):
+    try:
+        uuid_obj = uuid.UUID(uuid_str)
+        return str(uuid_obj) == uuid_str
+    except ValueError:
+        return False

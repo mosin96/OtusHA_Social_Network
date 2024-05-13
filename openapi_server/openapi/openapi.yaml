@@ -40,33 +40,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/inline_response_500'
           description: Ошибка сервера
-          headers:
-            Retry-After:
-              description: Время, через которое еще раз нужно сделать запрос
-              explode: false
-              required: false
-              schema:
-                type: integer
-              style: simple
-        "503":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/inline_response_500'
-          description: Ошибка сервера
-          headers:
-            Retry-After:
-              description: Время, через которое еще раз нужно сделать запрос
-              explode: false
-              required: false
-              schema:
-                type: integer
-              style: simple
+        "403":
+          description: Неправильный пароль
       x-openapi-router-controller: openapi_server.controllers.default_controller
   /user/get/{id}:
     get:
       description: Получение анкеты пользователя
-      operationId: user_get_id_get
+      operationId: user_get_id
       parameters:
       - description: Идентификатор пользователя
         explode: false
