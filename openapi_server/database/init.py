@@ -7,6 +7,7 @@ def init_users_table():
     if conn is not None:
         cur = conn.cursor()
         cur.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+        cur.execute('CREATE SCHEMA IF NOT EXISTS cdm')
         cur.execute('CREATE TABLE IF NOT EXISTS cdm.users'
                     '(id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,'
                     'first_name VARCHAR(50) NOT NULL,'

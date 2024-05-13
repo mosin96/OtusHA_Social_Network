@@ -1,10 +1,14 @@
+import json
+
 import bcrypt
 import connexion
 import six
 import time
 import random
+import uuid
 
-from openapi_server.database import connection
+import openapi_server.database.connection
+from openapi_server.database.connection import get_db_connection
 from openapi_server.models.inline_object import InlineObject  # noqa: E501
 from openapi_server.models.inline_object1 import InlineObject1  # noqa: E501
 from openapi_server.models.inline_response200 import InlineResponse200  # noqa: E501
@@ -14,6 +18,8 @@ from openapi_server.models.user import User  # noqa: E501
 from openapi_server import util
 from werkzeug.exceptions import HTTPException
 from flask_jwt_extended import create_access_token
+
+from openapi_server.util import is_valid_uuid, get_user_info_from_database
 
 
 def login_post(inline_object=None):  # noqa: E501
@@ -26,8 +32,9 @@ def login_post(inline_object=None):  # noqa: E501
 
     :rtype: InlineResponse200
     """
+
     def authenticate_user(auth_request: InlineObject):
-        conn = connection.get_db_connection()
+        conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(f"SELECT password_hash FROM cdm.users "
                     f"WHERE id=\'{auth_request.id}\'")
@@ -38,27 +45,31 @@ def login_post(inline_object=None):  # noqa: E501
             if bcrypt.checkpw(auth_request.password.encode('utf-8'), stored_hash_bytes):
                 return True
         return False
+
     if connexion.request.is_json:
         inline_object = InlineObject.from_dict(connexion.request.get_json())  # noqa: E501
         if authenticate_user(inline_object):
-            return InlineResponse200(token=create_access_token(identity=inline_object.id))
-        return 'Not do some magic!'# TODO ошибки если пароль не правильный и пользователь не найден и 500 на остальное
+            return InlineResponse200(token=create_access_token(identity=inline_object.id)), 200
+        return 'Not do some magic!'  # TODO ошибки если пароль не правильный и пользователь не найден и 500 на остальное
 
 
-
-
-def user_get_id_get(id):  # noqa: E501
+def user_get_id(id_):  # noqa: E501
     """user_get_id_get
 
     Получение анкеты пользователя # noqa: E501
 
-    :param id: Идентификатор пользователя
-    :type id: str
+    :param id_: Идентификатор пользователя
+    :type id_: str
 
     :rtype: User
     """
-
-    return 'do some magic!'
+    if not is_valid_uuid(id_):
+        return "Невалидные данные", 400
+    user_info = get_user_info_from_database(id_)
+    if user_info is None:
+        return "Анкета не найдена", 404
+    user = User(**user_info)
+    return user, 200
 
 
 def user_register_post(inline_object1=None):  # noqa: E501
@@ -78,7 +89,7 @@ def user_register_post(inline_object1=None):  # noqa: E501
             # Хеширование пароля
             password_hash = bcrypt.hashpw(inline_object1.password.encode('utf-8'), bcrypt.gensalt())
             # Выполнение SQL запроса для вставки нового пользователя в таблицу
-            conn = connection.get_db_connection()
+            conn = get_db_connection()
             if conn is not None:
                 cur = conn.cursor()
                 cur.execute(
@@ -93,5 +104,4 @@ def user_register_post(inline_object1=None):  # noqa: E501
                 return response
     except Exception:
         response = InlineResponse500(message='Ошибка создания пользователя', code=500, request_id=request_id)
-        return connexion.problem(response.code, response.message, response.to_str()) #TODO подумать над ответом
-
+        return response, response.code  #TODO подумать над ответом

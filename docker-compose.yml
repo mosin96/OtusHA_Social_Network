@@ -1,20 +1,16 @@
 version: '1'
 
+volumes:
+    db-data:
+      driver: local
+    pgadmin:
+      driver: local
+
+networks:
+  backend:
+    driver: bridge
+
 services:
-  openapi_server:
-    env_file: ./docker/.env-postgresql
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-    ports:
-      - 8280:8280
-    depends_on:
-      - postgres
-    networks:
-      - backend
-    restart: unless-stopped
 
   postgres:
     env_file: ./docker/.env-postgresql
@@ -43,13 +39,17 @@ services:
     networks:
       - backend
 
-
-volumes:
-    db-data:
-      driver: local
-    pgadmin:
-      driver: local
-
-networks:
-  backend:
-    driver: bridge
+  openapi_server:
+    env_file: ./docker/.env-postgresql
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 8280:8280
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    restart: unless-stopped

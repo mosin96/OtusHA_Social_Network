@@ -66,7 +66,7 @@ paths:
   /user/get/{id}:
     get:
       description: Получение анкеты пользователя
-      operationId: user_get_id_get
+      operationId: user_get_id
       parameters:
       - description: Идентификатор пользователя
         explode: false
