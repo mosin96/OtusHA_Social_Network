@@ -1,8 +1,13 @@
 import datetime
+import uuid
 
 import six
 import typing
+
+from flask_jwt_extended import get_jwt_identity
+
 from openapi_server import typing_utils
+from openapi_server.database.connection import get_db_connection
 
 
 def _deserialize(data, klass):
@@ -140,3 +145,54 @@ def _deserialize_dict(data, boxed_type):
     """
     return {k: _deserialize(v, boxed_type)
             for k, v in six.iteritems(data)}
+
+
+# Метод для извлечения информации о пользователе из базы данных PostgreSQL
+def get_user_info_from_database(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT biography, birthdate, city, first_name, id, second_name"
+                " FROM cdm.users WHERE id = %s", (user_id,))
+    user_info = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if user_info:
+        user = {'biography': user_info[0],
+                'birthdate': user_info[1],
+                'city': user_info[2],
+                'first_name': user_info[3],
+                'id': user_info[4],
+                'second_name': user_info[5]}
+        return user
+    else:
+        return None
+
+
+def is_valid_uuid(uuid_str):
+    try:
+        uuid_obj = uuid.UUID(uuid_str)
+        return str(uuid_obj) == uuid_str
+    except ValueError:
+        return False
+
+
+# Декоратор для проверки наличия пользователя в базе данных
+def jwt_user_in_database_required(fn):
+    def wrapper(*args, **kwargs):
+        user_id = get_jwt_identity()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"SELECT id FROM cdm.users "
+                    f"WHERE id=\'{user_id}\'")
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            return fn(*args, **kwargs)
+        else:
+            return "Токен выдан несуществующему пользователю", 401
+    return wrapper

@@ -6,3 +6,6 @@ typing >= 3.5.2.2
 pyyaml < 5.3; python_version<="2.7"
 setuptools >= 21.0.0
 jinja2==3.0.3
+psycopg2-binary
+bcrypt
+Flask-JWT-Extended

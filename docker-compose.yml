@@ -1,0 +1,55 @@
+version: '1'
+
+volumes:
+    db-data:
+      driver: local
+    pgadmin:
+      driver: local
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+
+  postgres:
+    env_file: ./docker/.env-postgresql
+    container_name: postgres_flask_container
+    image: postgres:14
+    volumes:
+       - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    networks:
+      - backend
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@server.ru}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-AB123456}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+       - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    restart: unless-stopped
+    networks:
+      - backend
+
+  openapi_server:
+    env_file: ./docker/.env-postgresql
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 8280:8280
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    restart: unless-stopped

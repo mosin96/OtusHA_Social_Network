@@ -1,5 +1,8 @@
 from typing import List
 
+import jwt
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+
 
 def info_from_bearerAuth(token):
     """
@@ -12,6 +15,11 @@ def info_from_bearerAuth(token):
     :return: Decoded token information or None if token is invalid
     :rtype: dict | None
     """
-    return {'uid': 'user_id'}
-
-
+    try:
+        verify_jwt_in_request(fresh=True)
+        sub = get_jwt_identity()
+        return {'uid': sub}
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
