@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 import bcrypt
 import connexion
@@ -17,9 +18,9 @@ from openapi_server.models.inline_response500 import InlineResponse500  # noqa: 
 from openapi_server.models.user import User  # noqa: E501
 from openapi_server import util
 from werkzeug.exceptions import HTTPException
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required
 
-from openapi_server.util import is_valid_uuid, get_user_info_from_database
+from openapi_server.util import is_valid_uuid, get_user_info_from_database, jwt_user_in_database_required
 
 
 def login_post(inline_object=None):  # noqa: E501
@@ -57,7 +58,11 @@ def login_post(inline_object=None):  # noqa: E501
             if result is None:
                 return "Пользователь не найден", 404
             if result:
-                return InlineResponse200(token=create_access_token(identity=inline_object.id)), 200
+                new_token = create_access_token(identity=inline_object.id,
+                                                expires_delta=timedelta(minutes=600),
+                                                fresh=True
+                                                )
+                return InlineResponse200(token=new_token), 200
             return "Неправильный пароль", 403
         return "Невалидные данные", 400
     except Exception:
@@ -65,11 +70,15 @@ def login_post(inline_object=None):  # noqa: E501
         return response, response.code
 
 
-
-def user_get_id(id_):  # noqa: E501
+@jwt_required(fresh=True)
+@jwt_user_in_database_required
+def user_get_id(id_, *args, **kwargs):
     """user_get_id_get
 
-    Получение анкеты пользователя # noqa: E501
+    Получение анкеты пользователя
+
+    :param id_: Идентификатор пользователя
+    :type id_: str
 
     :param id_: Идентификатор пользователя
     :type id_: str
@@ -81,14 +90,14 @@ def user_get_id(id_):  # noqa: E501
     user_info = get_user_info_from_database(id_)
     if user_info is None:
         return "Анкета не найдена", 404
-    user = User(**user_info)
-    return user, 200
+    result_user = User(**user_info)
+    return result_user, 200
 
 
-def user_register_post(inline_object1=None):  # noqa: E501
+def user_register_post(inline_object1=None):
     """user_register_post
 
-    Регистрация нового пользователя # noqa: E501
+    Регистрация нового пользователя
 
     :param inline_object1: 
     :type inline_object1: dict | bytes

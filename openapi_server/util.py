@@ -3,6 +3,9 @@ import uuid
 
 import six
 import typing
+
+from flask_jwt_extended import get_jwt_identity
+
 from openapi_server import typing_utils
 from openapi_server.database.connection import get_db_connection
 
@@ -168,14 +171,28 @@ def get_user_info_from_database(user_id):
         return None
 
 
-# Метод контроллера для /user/get/<id> с авторизацией по токену Bearer
-# def get_user_by_id(id, authorization):
-# if not check_token(authorization):
-#     return "Ошибка авторизации. Токен Bearer отсутствует.", 401
-
 def is_valid_uuid(uuid_str):
     try:
         uuid_obj = uuid.UUID(uuid_str)
         return str(uuid_obj) == uuid_str
     except ValueError:
         return False
+
+
+# Декоратор для проверки наличия пользователя в базе данных
+def jwt_user_in_database_required(fn):
+    def wrapper(*args, **kwargs):
+        user_id = get_jwt_identity()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"SELECT id FROM cdm.users "
+                    f"WHERE id=\'{user_id}\'")
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            return fn(*args, **kwargs)
+        else:
+            return "Токен выдан несуществующему пользователю", 401
+    return wrapper
