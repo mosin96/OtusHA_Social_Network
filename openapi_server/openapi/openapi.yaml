@@ -17,7 +17,7 @@ paths:
             schema:
               properties:
                 id:
-                  description: Идентификатор пользователя
+                  description: Идентификатор пользователя в формате UUID
                   type: string
                 password:
                   example: Секретная строка
@@ -242,7 +242,8 @@ components:
     inline_object:
       properties:
         id:
-          description: Идентификатор пользователя
+          description: Идентификатор пользователя в формате UUID
+          example: e4d2e6b0-cde2-42c5-aac3-0b8316f21e58
           type: string
         password:
           example: Секретная строка
