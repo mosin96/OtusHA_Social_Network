@@ -26,6 +26,12 @@ docker compose up
 ```
 ## Использование
 
+### Postman collection
+
+Коллекция расположена тут:
+
+**postman_collection/OTUS HA Social Network.postman_collection.json**
+
 ### pgAdmin
 
 Зайдите на http://localhost:5050/browser/ для работы с БД через pgAdmin
