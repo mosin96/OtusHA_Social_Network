@@ -6,6 +6,9 @@ os.environ['POSTGRES_DB'] = 'HA_SN_db'
 os.environ['POSTGRES_USER'] = 'HA_SN_user'
 os.environ['POSTGRES_PASSWORD'] = 'HA_SN_password'
 
+# Uncomment for debug
+# os.environ['POSTGRES_HOST'] = 'localhost'
+
 
 def get_environment_variable(variable_name):
     """
@@ -43,3 +46,4 @@ class ConnectionFromPool:
             print(f"Exception type: {exc_type}")
             print(f"Exception value: {exc_value}")
             # Можно обработать ошибку здесь, если необходимо
+

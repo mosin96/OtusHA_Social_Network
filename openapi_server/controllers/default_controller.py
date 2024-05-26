@@ -1,27 +1,19 @@
-import json
+import random
+import time
 from datetime import timedelta
 
 import bcrypt
 import connexion
-import six
-import time
-import random
-import uuid
-
 from flask import request
+from flask_jwt_extended import create_access_token, jwt_required
 
-import openapi_server.database.connection
-from openapi_server.database.connection import get_db_connection
+from openapi_server.database.connection import ConnectionFromPool
 from openapi_server.models.inline_object import InlineObject  # noqa: E501
 from openapi_server.models.inline_object1 import InlineObject1  # noqa: E501
 from openapi_server.models.inline_response200 import InlineResponse200  # noqa: E501
 from openapi_server.models.inline_response2001 import InlineResponse2001  # noqa: E501
 from openapi_server.models.inline_response500 import InlineResponse500  # noqa: E501
 from openapi_server.models.user import User  # noqa: E501
-from openapi_server import util
-from werkzeug.exceptions import HTTPException
-from flask_jwt_extended import create_access_token, jwt_required
-
 from openapi_server.util import is_valid_uuid, get_user_info_from_database_search, jwt_user_in_database_required, \
     get_user_info_from_database_by_id
 
@@ -38,11 +30,11 @@ def login_post(inline_object=None):  # noqa: E501
     """
 
     def authenticate_user(auth_request: InlineObject):
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(f"SELECT password_hash FROM cdm.users "
-                    f"WHERE id=\'{auth_request.id}\'")
-        select_result = cur.fetchone()
+        with ConnectionFromPool() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT password_hash FROM cdm.users "
+                               f"WHERE id=\'{auth_request.id}\'")
+                select_result = cursor.fetchone()
         if select_result:
             stored_hash = select_result[0]
             stored_hash_bytes = bytes(stored_hash)
@@ -114,17 +106,16 @@ def user_register_post(inline_object1=None):
             # Хеширование пароля
             password_hash = bcrypt.hashpw(inline_object1.password.encode('utf-8'), bcrypt.gensalt())
             # Выполнение SQL запроса для вставки нового пользователя в таблицу
-            conn = get_db_connection()
-            if conn is not None:
-                cur = conn.cursor()
-                cur.execute(
-                    "INSERT INTO cdm.users (first_name, second_name, birthdate, biography, city, password_hash)"
-                    "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-                    (inline_object1.first_name, inline_object1.second_name, inline_object1.birthdate,
-                     inline_object1.biography, inline_object1.city, password_hash)
-                )
-                user_id = cur.fetchone()[0]
-                conn.commit()
+            with ConnectionFromPool() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "INSERT INTO cdm.users (first_name, second_name, birthdate, biography, city, password_hash)"
+                        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                        (inline_object1.first_name, inline_object1.second_name, inline_object1.birthdate,
+                         inline_object1.biography, inline_object1.city, password_hash)
+                    )
+                    user_id = cursor.fetchone()[0]
+                    connection.commit()
                 response = InlineResponse2001(user_id)
                 return response, 200
     except Exception:

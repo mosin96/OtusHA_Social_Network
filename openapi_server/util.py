@@ -7,7 +7,8 @@ import typing
 from flask_jwt_extended import get_jwt_identity
 
 from openapi_server import typing_utils
-from openapi_server.database.connection import get_db_connection, get_db_pool_connection, ConnectionFromPool
+import openapi_server.database  # NOQA
+from openapi_server.database.connection import ConnectionFromPool
 
 
 def _deserialize(data, klass):
@@ -152,7 +153,7 @@ def get_user_info_from_database_by_id(user_id):
     with ConnectionFromPool() as connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT biography, birthdate, city, first_name, id, second_name"
-                        " FROM cdm.users WHERE id = %s", (user_id,))
+                           " FROM cdm.users WHERE id = %s", (user_id,))
             user_info = cursor.fetchone()
 
     if user_info:
@@ -171,14 +172,19 @@ def get_user_info_from_database_by_id(user_id):
 def get_user_info_from_database_search(first_name, second_name):
     with ConnectionFromPool() as connection:
         with connection.cursor() as cursor:
-            cursor.execute(f"SELECT id FROM cdm.users "
-                        f"WHERE first_name LIKE '{first_name}%' "
-                        f"and second_name LIKE '{second_name}%'"
-                        f"order by id")
+            cursor.execute(f"SELECT biography, birthdate, city, first_name, id, second_name FROM cdm.users "
+                           f"WHERE first_name LIKE '{first_name}%' "
+                           f"and second_name LIKE '{second_name}%'"
+                           f"order by id")
             users_info = cursor.fetchall()
 
     if users_info:
-        result = [get_user_info_from_database_by_id(user_id) for user_id in users_info]
+        result = [{'biography': user_info[0],
+                   'birthdate': user_info[1],
+                   'city': user_info[2],
+                   'first_name': user_info[3],
+                   'id': user_info[4],
+                   'second_name': user_info[5]} for user_info in users_info]
         return result
     else:
         return None
@@ -199,10 +205,11 @@ def jwt_user_in_database_required(fn):
         with ConnectionFromPool() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(f"SELECT id FROM cdm.users "
-                            f"WHERE id=\'{user_id}\'")
+                               f"WHERE id=\'{user_id}\'")
                 user = cursor.fetchone()
         if user:
             return fn(*args, **kwargs)
         else:
             return "Токен выдан несуществующему пользователю", 401
+
     return wrapper

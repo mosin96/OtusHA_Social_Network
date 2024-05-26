@@ -15,6 +15,7 @@ services:
   postgres:
     env_file: ./docker/.env-postgresql
     container_name: postgres_flask_container
+    shm_size: 2g
     image: postgres:14
     volumes:
        - db-data:/var/lib/postgresql/data
@@ -41,6 +42,7 @@ services:
 
   openapi_server:
     env_file: ./docker/.env-postgresql
+    shm_size: 2g
     build:
       context: .
       dockerfile: Dockerfile
