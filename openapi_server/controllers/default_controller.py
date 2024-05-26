@@ -8,6 +8,8 @@ import time
 import random
 import uuid
 
+from flask import request
+
 import openapi_server.database.connection
 from openapi_server.database.connection import get_db_connection
 from openapi_server.models.inline_object import InlineObject  # noqa: E501
@@ -20,7 +22,8 @@ from openapi_server import util
 from werkzeug.exceptions import HTTPException
 from flask_jwt_extended import create_access_token, jwt_required
 
-from openapi_server.util import is_valid_uuid, get_user_info_from_database, jwt_user_in_database_required
+from openapi_server.util import is_valid_uuid, get_user_info_from_database_search, jwt_user_in_database_required, \
+    get_user_info_from_database_by_id
 
 
 def login_post(inline_object=None):  # noqa: E501
@@ -72,7 +75,7 @@ def login_post(inline_object=None):  # noqa: E501
 
 @jwt_required(fresh=True)
 @jwt_user_in_database_required
-def user_get_id(id_, *args, **kwargs):
+def user_get_id_get(id_, *args, **kwargs):
     """user_get_id_get
 
     Получение анкеты пользователя
@@ -87,7 +90,7 @@ def user_get_id(id_, *args, **kwargs):
     """
     if not is_valid_uuid(id_):
         return "Невалидные данные", 400
-    user_info = get_user_info_from_database(id_)
+    user_info = get_user_info_from_database_by_id(id_)
     if user_info is None:
         return "Анкета не найдена", 404
     result_user = User(**user_info)
@@ -126,4 +129,31 @@ def user_register_post(inline_object1=None):
                 return response, 200
     except Exception:
         response = InlineResponse500(message='Ошибка создания пользователя', code=500, request_id=request_id)
+        return response, response.code
+
+
+@jwt_required(fresh=True)
+@jwt_user_in_database_required
+def user_search_get(*args, **kwargs):
+    """user_search_get
+
+    Поиск анкет
+
+    :rtype: User
+    """
+    request_id = str(time.time_ns()) + str(random.randint(1, 1000))
+    try:
+        # Доступ к параметрам запроса через объект request
+        first_name = request.args.get('first_name')
+        second_name = request.args.get('second_name')
+
+        if not first_name or not second_name:
+            return "Невалидные данные", 400
+
+        result = get_user_info_from_database_search(first_name, second_name)
+        if result is None:
+            return "Пользователей не найдено", 200
+        return result, 200
+    except Exception:
+        response = InlineResponse500(message='Ошибка поиска', code=500, request_id=request_id)
         return response, response.code

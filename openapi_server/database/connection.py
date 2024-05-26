@@ -1,5 +1,6 @@
 import os
 import psycopg2
+from psycopg2 import pool
 
 os.environ['POSTGRES_DB'] = 'HA_SN_db'
 os.environ['POSTGRES_USER'] = 'HA_SN_user'
@@ -19,19 +20,26 @@ def get_environment_variable(variable_name):
     return value
 
 
-# Функция для подключения к базе данных PostgreSQL
-def get_db_connection():
-    try:
-        DB_HOST = get_environment_variable('POSTGRES_HOST')
-        DB_NAME = get_environment_variable('POSTGRES_DB')
-        DB_USER = get_environment_variable('POSTGRES_USER')
-        DB_PASSWORD = get_environment_variable('POSTGRES_PASSWORD')
+DB_HOST = get_environment_variable('POSTGRES_HOST')
+DB_NAME = get_environment_variable('POSTGRES_DB')
+DB_USER = get_environment_variable('POSTGRES_USER')
+DB_PASSWORD = get_environment_variable('POSTGRES_PASSWORD')
 
-        connection = psycopg2.connect(host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD)
-        return connection
-    except psycopg2.Error as e:
-        print(f'Ошибка при подключении к базе данных: {e}')
-        return None
-    except KeyError as e:
-        print(f'Ошибка: {e}')
-        return None
+connection_pool = psycopg2.pool.SimpleConnectionPool(
+    1,  # Минимальное количество соединений в пуле
+    2000,  # Максимальное количество соединений в пуле
+    host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD)
+
+
+# Контекстный менеджер для работы с соединением
+class ConnectionFromPool:
+    def __enter__(self):
+        self.conn = connection_pool.getconn()
+        return self.conn
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        connection_pool.putconn(self.conn)
+        if exc_type is not None:
+            print(f"Exception type: {exc_type}")
+            print(f"Exception value: {exc_value}")
+            # Можно обработать ошибку здесь, если необходимо

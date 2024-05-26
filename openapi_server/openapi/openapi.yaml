@@ -43,10 +43,11 @@ paths:
         "403":
           description: Неправильный пароль
       x-openapi-router-controller: openapi_server.controllers.default_controller
+
   /user/get/{id}:
     get:
       description: Получение анкеты пользователя
-      operationId: user_get_id
+      operationId: user_get_id_get
       security:
         - bearerAuth: [ ]
       parameters:
@@ -166,6 +167,45 @@ paths:
               schema:
                 type: integer
               style: simple
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+  /user/search:
+    get:
+      description: Поиск анкет
+      operationId: user_search_get
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: first_name
+          schema:
+            type: string
+            description: Часть имени для поиска
+            example: Конст
+          in: query
+          required: true
+          description: Условие поиска по имени
+        - name: second_name
+          schema:
+            type: string
+            description: Часть фамилии для поиска
+            example: Оси
+          in: query
+          required: true
+          description: Условие поиска по фамилии
+      responses:
+        '200':
+          description: Успешные поиск пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/User"
+        '400':
+          description: Невалидные данные
+        '500':
+          "$ref": "#/components/responses/5xx"
+        '503':
+          "$ref": "#/components/responses/5xx"
       x-openapi-router-controller: openapi_server.controllers.default_controller
 components:
   requestBodies:

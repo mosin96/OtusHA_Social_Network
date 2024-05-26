@@ -7,7 +7,7 @@ import typing
 from flask_jwt_extended import get_jwt_identity
 
 from openapi_server import typing_utils
-from openapi_server.database.connection import get_db_connection
+from openapi_server.database.connection import get_db_connection, get_db_pool_connection, ConnectionFromPool
 
 
 def _deserialize(data, klass):
@@ -147,17 +147,13 @@ def _deserialize_dict(data, boxed_type):
             for k, v in six.iteritems(data)}
 
 
-# Метод для извлечения информации о пользователе из базы данных PostgreSQL
-def get_user_info_from_database(user_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("SELECT biography, birthdate, city, first_name, id, second_name"
-                " FROM cdm.users WHERE id = %s", (user_id,))
-    user_info = cur.fetchone()
-
-    cur.close()
-    conn.close()
+# Метод для извлечения информации о пользователе по id из базы данных PostgreSQL
+def get_user_info_from_database_by_id(user_id):
+    with ConnectionFromPool() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT biography, birthdate, city, first_name, id, second_name"
+                        " FROM cdm.users WHERE id = %s", (user_id,))
+            user_info = cursor.fetchone()
 
     if user_info:
         user = {'biography': user_info[0],
@@ -167,6 +163,23 @@ def get_user_info_from_database(user_id):
                 'id': user_info[4],
                 'second_name': user_info[5]}
         return user
+    else:
+        return None
+
+
+# Метод для извлечения информации о пользователе по id из базы данных PostgreSQL
+def get_user_info_from_database_search(first_name, second_name):
+    with ConnectionFromPool() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT id FROM cdm.users "
+                        f"WHERE first_name LIKE '{first_name}%' "
+                        f"and second_name LIKE '{second_name}%'"
+                        f"order by id")
+            users_info = cursor.fetchall()
+
+    if users_info:
+        result = [get_user_info_from_database_by_id(user_id) for user_id in users_info]
+        return result
     else:
         return None
 
@@ -183,14 +196,11 @@ def is_valid_uuid(uuid_str):
 def jwt_user_in_database_required(fn):
     def wrapper(*args, **kwargs):
         user_id = get_jwt_identity()
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(f"SELECT id FROM cdm.users "
-                    f"WHERE id=\'{user_id}\'")
-        user = cur.fetchone()
-        cur.close()
-        conn.close()
-
+        with ConnectionFromPool() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT id FROM cdm.users "
+                            f"WHERE id=\'{user_id}\'")
+                user = cursor.fetchone()
         if user:
             return fn(*args, **kwargs)
         else:

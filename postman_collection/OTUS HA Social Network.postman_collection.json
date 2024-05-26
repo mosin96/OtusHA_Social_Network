@@ -519,6 +519,31 @@
 					"body": "{\n  \"message\": \"consequat tempor\",\n  \"request_id\": \"tempor aliqua velit in\",\n  \"code\": -46589990\n}"
 				}
 			]
+		},
+		{
+			"name": "/user/search",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "/user/search?first_name=Ива&second_name=Пет",
+					"path": [
+						"user",
+						"search"
+					],
+					"query": [
+						{
+							"key": "first_name",
+							"value": "Ива"
+						},
+						{
+							"key": "second_name",
+							"value": "Пет"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"auth": {
